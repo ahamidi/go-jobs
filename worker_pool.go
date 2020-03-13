@@ -2,7 +2,6 @@ package jobs
 
 import (
 	"sync"
-	"time"
 )
 
 // WorkerPool represents a collection of Workers
@@ -16,10 +15,11 @@ type WorkerPool struct {
 func NewWorkerPool(q *Queue, fn WorkerFunc, size int) (*WorkerPool, error) {
 	wp := &WorkerPool{
 		Workers: make([]*Worker, size),
+		wg:      sync.WaitGroup{},
 	}
 
 	for i := 0; i < size; i++ {
-		wp.Workers[i] = newWorker(q, fn)
+		wp.Workers[i] = newWorker(q, fn, &wp.wg)
 		wp.wg.Add(1)
 	}
 	return wp, nil
@@ -27,21 +27,10 @@ func NewWorkerPool(q *Queue, fn WorkerFunc, size int) (*WorkerPool, error) {
 
 // Run the WorkerPool and will spin up the specified number of Workers
 func (p *WorkerPool) Run() {
-	for {
-		select {
-		case <-p.stop:
-			break
-		default:
-			for _, w := range p.Workers {
-				go func(w *Worker) {
-					err := w.do()
-					if err == NoPendingJobsError {
-						time.Sleep(1 * time.Second)
-					}
-				}(w)
-			}
-		}
+	for _, w := range p.Workers {
+		go w.do()
 	}
+	p.wg.Wait()
 }
 
 // Stop halts the WorkerPool and tears down all Workers
