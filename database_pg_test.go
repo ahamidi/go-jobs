@@ -108,22 +108,18 @@ func TestGetNextJob(t *testing.T) {
 		t.Errorf("expect id %d, got %d", id1, job3.ID)
 	}
 
+	job2.Complete(true, nil)
+
 }
 
 func pg() (*Postgres, error) {
-	u := os.Getenv("TEST_DATABASE_URL")
-	if u == "" {
-		log.Fatal("no test database provided")
-	}
-
+	u := testDBURL()
 	return NewPG(u)
 }
 
 func pgWithTx() (*Postgres, pgx.Tx, error) {
-	u := os.Getenv("TEST_DATABASE_URL")
-	if u == "" {
-		log.Fatal("no test database provided")
-	}
+	u := testDBURL()
+
 	pool, err := pgxpool.Connect(context.Background(), u)
 	if err != nil {
 		return nil, nil, err
@@ -139,4 +135,12 @@ func pgWithTx() (*Postgres, pgx.Tx, error) {
 
 func truncateJobsTable(db *Postgres) {
 	db.Exec(context.Background(), "TRUNCATE TABLE jobs")
+}
+
+func testDBURL() string {
+	u := os.Getenv("TEST_DATABASE_URL")
+	if u == "" {
+		log.Fatal("no test database provided")
+	}
+	return u
 }

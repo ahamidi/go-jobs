@@ -151,6 +151,11 @@ func (tx Transaction) MarkJobAsCompleted(j *Job, successful bool, e error) error
 	} else {
 		j.Retries--
 	}
+
+	if e == nil {
+		e = errors.New("no error")
+	}
+
 	ct, err := tx.Exec(context.Background(), "UPDATE jobs SET retries = $1, state = $2, success = $3, error = $4, updated_at = CURRENT_TIMESTAMP, completed_at = CURRENT_TIMESTAMP WHERE id = $5", j.Retries, s, successful, e.Error(), j.ID)
 	if err != nil {
 		return err
