@@ -25,7 +25,7 @@ func main() {
 
 	go jobProducer(q)
 
-	p, err := jobs.NewWorkerPool(q, counter, 1)
+	p, err := jobs.NewWorkerPool(q, printer, 10)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -34,7 +34,6 @@ func main() {
 }
 
 func jobProducer(q *jobs.Queue) {
-
 	for {
 		payload := map[string]interface{}{
 			"value": rand.Intn(100),
@@ -47,10 +46,9 @@ func jobProducer(q *jobs.Queue) {
 		}
 		time.Sleep(1000 * time.Millisecond)
 	}
-
 }
 
-func counter(payload interface{}) error {
+func printer(payload interface{}) error {
 	p := payload.(map[string]interface{})
 	log.Println("Processed value", p["value"].(float64))
 	if p["value"].(float64) > 80 {
