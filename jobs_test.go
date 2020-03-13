@@ -3,7 +3,7 @@ package jobs_test
 import (
 	"testing"
 
-	jobs "github.com/ahamidi/go-jobs2"
+	jobs "github.com/ahamidi/go-jobs"
 )
 
 func TestNewJob(t *testing.T) {
