@@ -110,7 +110,7 @@ func (db *Postgres) GetNextJob(queue string) (*Job, error) {
 		ID:          id,
 		Retries:     retries,
 		Payload:     payload,
-		State:       state,
+		State:       Running,
 		Success:     success,
 		Error:       &e,
 		CreatedAt:   createdAt,
