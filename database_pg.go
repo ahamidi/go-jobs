@@ -5,25 +5,18 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/pgxpool"
 )
 
 // Postgres handle
 type Postgres struct {
-	Queryable
+	*pgxpool.Pool
 }
 
+// Transaction wrapper to support extending
 type Transaction struct {
 	pgx.Tx
-}
-
-type Queryable interface {
-	Begin(context.Context) (pgx.Tx, error)
-	Exec(context.Context, string, ...interface{}) (pgconn.CommandTag, error)
-	Query(context.Context, string, ...interface{}) (pgx.Rows, error)
-	QueryRow(context.Context, string, ...interface{}) pgx.Row
 }
 
 // NewPG returns a verified Postgres struct

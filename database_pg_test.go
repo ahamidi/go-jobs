@@ -134,7 +134,7 @@ func pgWithTx() (*Postgres, pgx.Tx, error) {
 		return nil, nil, err
 	}
 
-	return &Postgres{tx}, tx, nil
+	return &Postgres{pool}, tx, nil
 }
 
 func truncateJobsTable(db *Postgres) {
