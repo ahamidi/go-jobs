@@ -1,4 +1,4 @@
-CREATE TABLE jobs (
+CREATE UNLOGGED TABLE jobs (
     id serial primary key,
     queue text NOT NULL DEFAULT 'default',
     retries int NOT NULL DEFAULT 0,
@@ -10,3 +10,4 @@ CREATE TABLE jobs (
     updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP, 
     completed_at timestamptz 
 );
+create index idx_state_updated ON jobs (queue, state, updated_at ASC);

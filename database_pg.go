@@ -99,6 +99,9 @@ func (db *Postgres) GetNextJob(queue string) (*Job, error) {
 	err = tx.QueryRow(context.Background(), "SELECT id, retries, payload, state, success, error, created_at, updated_at, completed_at FROM jobs WHERE queue = $1 AND state = 0 ORDER BY updated_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED", queue).
 		Scan(&id, &retries, &payload, &state, &success, &eString, &createdAt, &updatedAt, &completedAt)
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, NoPendingJobsError
+		}
 		return nil, err
 	}
 	var e error

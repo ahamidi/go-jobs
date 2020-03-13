@@ -3,7 +3,7 @@ package jobs
 // Worker struct contains reference to the Queue and the function to execture
 // against jobs in that Queue
 type Worker struct {
-	Queue Queue
+	Queue *Queue
 	fn    WorkerFunc
 }
 
@@ -11,9 +11,10 @@ type Worker struct {
 type WorkerFunc func(payload interface{}) error
 
 // NewWorker constructor
-func NewWorker(q Queue) *Worker {
+func newWorker(q *Queue, fn WorkerFunc) *Worker {
 	return &Worker{
 		Queue: q,
+		fn:    fn,
 	}
 }
 
@@ -23,5 +24,11 @@ func (w *Worker) do() error {
 		return err
 	}
 
-	return w.fn(j.Payload)
+	err = w.fn(j.Payload)
+	if err != nil {
+		j.Complete(false, err)
+		return err
+	}
+	j.Complete(true, nil)
+	return nil
 }
