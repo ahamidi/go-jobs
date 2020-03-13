@@ -29,6 +29,8 @@ func TestQueueNext(t *testing.T) {
 		t.Errorf("expected id %d, go %d", id, job.ID)
 	}
 
+	job.Complete(true, nil)
+
 	t.Cleanup(func() {
 		truncateJobsTable(q.DB)
 	})

@@ -6,17 +6,13 @@ import (
 	"log"
 	"os"
 	"testing"
-
-	"github.com/jackc/pgx"
-	"github.com/jackc/pgx/pgxpool"
 )
 
 func TestEnqueueJob(t *testing.T) {
-	db, tx, err := pgWithTx()
+	db, err := pg()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer tx.Rollback(context.Background())
 
 	j := NewJob(map[string]interface{}{
 		"message": "hello",
@@ -30,6 +26,10 @@ func TestEnqueueJob(t *testing.T) {
 	if id == 0 {
 		t.Errorf("expect id not 0, got %d", id)
 	}
+
+	t.Cleanup(func() {
+		truncateJobsTable(db)
+	})
 }
 
 func TestFindJob(t *testing.T) {
@@ -53,6 +53,10 @@ func TestFindJob(t *testing.T) {
 	if m := job.Payload.(map[string]interface{})["message"].(string); m != payload["message"] {
 		t.Errorf("expect payload message %s, got %s", payload["message"], m)
 	}
+
+	t.Cleanup(func() {
+		truncateJobsTable(db)
+	})
 }
 
 func TestGetNextJob(t *testing.T) {
@@ -60,8 +64,6 @@ func TestGetNextJob(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	truncateJobsTable(db)
 
 	// Add 2 jobs
 	payload := map[string]string{
@@ -109,28 +111,16 @@ func TestGetNextJob(t *testing.T) {
 	}
 
 	job2.Complete(true, nil)
+	job3.Complete(true, nil)
 
+	t.Cleanup(func() {
+		truncateJobsTable(db)
+	})
 }
 
 func pg() (*Postgres, error) {
 	u := testDBURL()
 	return NewPG(u)
-}
-
-func pgWithTx() (*Postgres, pgx.Tx, error) {
-	u := testDBURL()
-
-	pool, err := pgxpool.Connect(context.Background(), u)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	tx, err := pool.Begin(context.Background())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return &Postgres{pool}, tx, nil
 }
 
 func truncateJobsTable(db *Postgres) {
@@ -144,6 +134,6 @@ func testDBURL() string {
 		log.Fatal("no test database provided")
 	}
 
-	u = u + "&pool_max_conns=100"
+	u = u + "&pool_max_conns=10"
 	return u
 }
