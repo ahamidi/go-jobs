@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"log"
 	"sync"
 	"time"
 )
@@ -44,7 +45,9 @@ func (w *Worker) do() {
 
 			err = w.fn(j.Payload)
 			if err != nil {
+				log.Println("Error:", err)
 				j.Complete(false, err)
+				continue
 			}
 			j.Complete(true, nil)
 		}

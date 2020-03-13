@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"math/rand"
 	"os"
@@ -38,12 +39,13 @@ func jobProducer(q *jobs.Queue) {
 		payload := map[string]interface{}{
 			"value": rand.Intn(100),
 		}
-		id, err := q.Enqueue(jobs.NewJob(payload))
+		j := jobs.NewJob(payload)
+		j.Retries = 10
+		_, err := q.Enqueue(j)
 		if err != nil {
 			log.Fatal(err)
-			log.Printf("Job Enqueued; id=%d", id)
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(1000 * time.Millisecond)
 	}
 
 }
@@ -51,5 +53,8 @@ func jobProducer(q *jobs.Queue) {
 func counter(payload interface{}) error {
 	p := payload.(map[string]interface{})
 	log.Println("Processed value", p["value"].(float64))
+	if p["value"].(float64) > 80 {
+		return errors.New("value too high")
+	}
 	return nil
 }

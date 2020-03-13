@@ -99,6 +99,7 @@ func (db *Postgres) GetNextJob(queue string) (*Job, error) {
 	err = tx.QueryRow(context.Background(), "SELECT id, retries, payload, state, success, error, created_at, updated_at, completed_at FROM jobs WHERE queue = $1 AND state = 0 ORDER BY updated_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED", queue).
 		Scan(&id, &retries, &payload, &state, &success, &eString, &createdAt, &updatedAt, &completedAt)
 	if err != nil {
+		tx.Rollback(context.Background())
 		if err == pgx.ErrNoRows {
 			return nil, NoPendingJobsError
 		}
@@ -145,21 +146,26 @@ func (db *Postgres) PendingJobs(queue string) (int, error) {
 // it was successful or failed
 func (tx Transaction) MarkJobAsCompleted(j *Job, successful bool, e error) error {
 	var s state
-	if j.Retries == 0 {
-		if successful {
-			s = Completed
-		} else {
+	if !successful {
+		if j.Retries == 0 {
 			s = Failed
+		} else {
+			j.Retries--
 		}
 	} else {
-		j.Retries--
+		s = Completed
 	}
 
+	var eString *string
 	if e == nil {
-		e = errors.New("no error")
+		//e = errors.New("no error")
+		eString = nil
+	} else {
+		eMessage := e.Error()
+		eString = &eMessage
 	}
 
-	ct, err := tx.Exec(context.Background(), "UPDATE jobs SET retries = $1, state = $2, success = $3, error = $4, updated_at = CURRENT_TIMESTAMP, completed_at = CURRENT_TIMESTAMP WHERE id = $5", j.Retries, s, successful, e.Error(), j.ID)
+	ct, err := tx.Exec(context.Background(), "UPDATE jobs SET retries = $1, state = $2, success = $3, error = $4, updated_at = CURRENT_TIMESTAMP, completed_at = CURRENT_TIMESTAMP WHERE id = $5", j.Retries, s, successful, eString, j.ID)
 	if err != nil {
 		return err
 	}
