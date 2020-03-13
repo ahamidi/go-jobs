@@ -135,6 +135,7 @@ func pgWithTx() (*Postgres, pgx.Tx, error) {
 
 func truncateJobsTable(db *Postgres) {
 	db.Exec(context.Background(), "TRUNCATE TABLE jobs")
+	//db.Exec(context.Background(), "delete from jobs")
 }
 
 func testDBURL() string {
@@ -142,5 +143,7 @@ func testDBURL() string {
 	if u == "" {
 		log.Fatal("no test database provided")
 	}
+
+	u = u + "&pool_max_conns=100"
 	return u
 }

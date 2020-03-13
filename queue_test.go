@@ -28,6 +28,10 @@ func TestQueueNext(t *testing.T) {
 	if job.ID != id {
 		t.Errorf("expected id %d, go %d", id, job.ID)
 	}
+
+	t.Cleanup(func() {
+		truncateJobsTable(q.DB)
+	})
 }
 
 func BenchmarkQueueEnqueue(b *testing.B) {
@@ -36,12 +40,10 @@ func BenchmarkQueueEnqueue(b *testing.B) {
 		log.Fatal(err)
 	}
 
-	truncateJobsTable(q.DB)
-
+	payload := map[string]string{
+		"message": "hello",
+	}
 	for n := 0; n < b.N; n++ {
-		payload := map[string]string{
-			"message": "hello",
-		}
 		j := NewJob(payload)
 
 		_, err := q.Enqueue(j)
@@ -50,6 +52,43 @@ func BenchmarkQueueEnqueue(b *testing.B) {
 		}
 	}
 
+	b.Cleanup(func() {
+		truncateJobsTable(q.DB)
+	})
+}
+
+func BenchmarkQueueNext(b *testing.B) {
+	q, err := newQueue("benchmark")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// setup
+	payload := map[string]string{
+		"message": "hello",
+	}
+	for i := 1; i < 10000; i++ {
+		j := NewJob(payload)
+		_, err := q.Enqueue(j)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	b.ResetTimer()
+
+	// benchmark
+	for n := 0; n < b.N; n++ {
+		job, err := q.Next()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		job.Complete(true, nil)
+	}
+
+	b.Cleanup(func() {
+		truncateJobsTable(q.DB)
+	})
 }
 
 func newQueue(name string) (*Queue, error) {
